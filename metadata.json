@@ -1,9 +1,9 @@
 {
     "$schema": "https://go.kicad.org/pcm/schemas/v1",
-    "name": "Example-KiCad-Plugin",
-    "description": "Example-KiCad-Plugin description ...",
-    "description_full": "Example-KiCad-Plugin description_full ...",
-    "identifier": "com.github.Steffen-W.Example-KiCad-Plugin",
+    "name": "KiCad_Pinout",
+    "description": "KiCad_Pinout description ...",
+    "description_full": "KiCad_Pinout description_full ...",
+    "identifier": "com.github.Steffen-W.KiCadPinout",
     "type": "plugin",
     "author": {
         "name": "Steffen W.",
@@ -19,7 +19,7 @@
     },
     "license": "GPL-3.0",
     "resources": {
-        "homepage": "https://github.com/Steffen-W/Example-KiCad-Plugin"
+        "homepage": "https://github.com/Steffen-W/KiCad_Pinout"
     },
     "tags": [
         "library"
