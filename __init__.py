@@ -1,3 +1,3 @@
-from .example import Plugin_action
+from .KiCad_Pinout import Plugin_action
 
 Plugin_action.ActionKiCadPlugin().register()
