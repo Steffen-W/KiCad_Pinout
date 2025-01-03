@@ -17,9 +17,9 @@ import wx.xrc
 class GUI_Dialog ( wx.Dialog ):
 
 	def __init__( self, parent ):
-		wx.Dialog.__init__ ( self, parent, id = wx.ID_ANY, title = u"Pinout result", pos = wx.DefaultPosition, size = wx.Size( 500,500 ), style = wx.DEFAULT_DIALOG_STYLE )
+		wx.Dialog.__init__ ( self, parent, id = wx.ID_ANY, title = u"Pinout result", pos = wx.DefaultPosition, size = wx.Size( 600,600 ), style = wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER )
 
-		self.SetSizeHints( wx.DefaultSize, wx.DefaultSize )
+		self.SetSizeHints( wx.Size( 300,300 ), wx.DefaultSize )
 
 		gbSizer1 = wx.GridBagSizer( 0, 0 )
 		gbSizer1.SetFlexibleDirection( wx.BOTH )
@@ -96,6 +96,7 @@ class GUI_Dialog ( wx.Dialog ):
 		self.Centre( wx.BOTH )
 
 		# Connect Events
+		self.output_format.Bind( wx.EVT_CHOICE, self.change_format )
 		self.m_buttonUpdate.Bind( wx.EVT_BUTTON, self.update )
 
 	def __del__( self ):
@@ -103,6 +104,9 @@ class GUI_Dialog ( wx.Dialog ):
 
 
 	# Virtual event handlers, override them in your derived class
+	def change_format( self, event ):
+		event.Skip()
+
 	def update( self, event ):
 		event.Skip()
 

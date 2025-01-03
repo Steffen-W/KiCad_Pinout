@@ -47,11 +47,11 @@
       <property name="hidden">0</property>
       <property name="id">wxID_ANY</property>
       <property name="maximum_size"></property>
-      <property name="minimum_size"></property>
+      <property name="minimum_size">300,300</property>
       <property name="name">GUI_Dialog</property>
       <property name="pos"></property>
-      <property name="size">500,500</property>
-      <property name="style">wxDEFAULT_DIALOG_STYLE</property>
+      <property name="size">600,600</property>
+      <property name="style">wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER</property>
       <property name="subclass">; ; forward_declare</property>
       <property name="title">Pinout result</property>
       <property name="tooltip"></property>
@@ -216,6 +216,7 @@
                     <property name="window_extra_style"></property>
                     <property name="window_name"></property>
                     <property name="window_style"></property>
+                    <event name="OnChoice">change_format</event>
                   </object>
                 </object>
                 <object class="sizeritem" expanded="true">

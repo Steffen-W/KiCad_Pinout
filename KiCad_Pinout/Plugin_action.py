@@ -3,25 +3,63 @@ import os
 import wx
 import pprint
 import re
+import configparser
 
 if __name__ == "__main__":
     from GUI import GUI_Dialog
 else:
     from .GUI import GUI_Dialog
 
-SELECTOR = [
-    "list",
-    "python",
-    "csv",
-    "html",
-    "md",
-    "c_define",
-    "c_enum",
-    "python_dict",
-    "wireviz",
-    "fpga_xdc",
-    "fpga_pdc",
-]
+FORMATS = {
+    "c_define": {
+        "start_seq": "// {reference} {value}",
+        "pin_seq": "#define {pin_function} {netname}",
+        "end_seq": "//",
+    },
+    "python": {},
+    "markdown": {
+        "start_seq": """Pinout for {reference}
+
+| Pin number    | Pin name      | Pin net       |
+|---------------|---------------|---------------|""",
+        "pin_seq": "| {number}\t\t| {pin_function}\t\t| {netname}\t\t|",
+        "end_seq": "",
+    },
+    "html": {
+        "start_seq": """<p>Pinout for {reference}</p>
+<table>
+	<tr><th>Pin number</th><th>Pin name</th><th>Pin net</th></tr>
+""",
+        "pin_seq": "	<tr><td>{number}</td><td>{pin_function}</td><td>{netname}</td></tr>",
+        "end_seq": "</table>",
+    },
+}
+
+
+def read_ini(file_path):
+    """
+    Reads an INI file and converts it to a Python dictionary.
+
+    :param file_path: Path to the INI file.
+    :return: A dictionary with the INI file content.
+    """
+    config = configparser.ConfigParser()
+    config.read(file_path)
+    return {section: dict(config.items(section)) for section in config.sections()}
+
+
+def write_ini(file_path, data):
+    """
+    Writes a Python dictionary into an INI file.
+
+    :param file_path: Path to the INI file.
+    :param data: A dictionary containing the INI content.
+    """
+    config = configparser.ConfigParser()
+    for section, values in data.items():
+        config[section] = values
+    with open(file_path, "w") as file:
+        config.write(file)
 
 
 def validate_format_string(format_string: str, placeholders: list):
@@ -114,16 +152,17 @@ def get_pins(component: pcbnew.FOOTPRINT):
                     "PinFunction": pad.GetPinFunction(),
                     "PinType": pad.GetPinType(),
                     "Netname": pad.GetNetname(),
-                    "Connected": pad.IsConnected(),
+                    "Connected": ("no_connect" not in pad.GetPinType())
+                    and pad.IsConnected(),
                 }
             )
     return pinout
 
 
-class KiCadPlugin(GUI_Dialog):
+class KiCad_Pinout(GUI_Dialog):
 
     def __init__(self, board: pcbnew.BOARD, action: pcbnew.ActionPlugin):
-        super(KiCadPlugin, self).__init__(None)
+        super(KiCad_Pinout, self).__init__(None)
         self.Bind(wx.EVT_MENU, self.on_escape, id=wx.ID_CLOSE)
         self.Bind(wx.EVT_CHAR_HOOK, self.on_key_press)
 
@@ -135,7 +174,11 @@ class KiCadPlugin(GUI_Dialog):
         # self.pinNameCB.Bind(wx.EVT_CHECKBOX, self.update)
         # self.pinNameFilter.Bind(wx.EVT_TEXT, self.update)
 
-        self.output_format.Set(SELECTOR)
+        # write_ini("options.ini", FORMATS)
+        # config = read_ini("options.ini")
+        # print(config)
+
+        self.output_format.Set(list(FORMATS.keys()))
         self.output_format.SetSelection(0)
 
         start_seq = "// {reference} {value}"
@@ -182,9 +225,33 @@ class KiCadPlugin(GUI_Dialog):
         pin_seq = self.m_text_pin.GetValue()
         end_seq = self.m_text_end.GetValue()
 
-        formatted_output = format_pins(footprint_list, start_seq, pin_seq, end_seq)
+        if not len(footprint_list):
+            formatted_output = "You have to mark components on the board."
+        elif sel_type == "python":
+            formatted_output = pptext
+        else:
+            formatted_output = format_pins(footprint_list, start_seq, pin_seq, end_seq)
+
         self.result.Clear()
         self.result.WriteText(formatted_output)
+
+        if event:
+            event.Skip()
+
+    def change_format(self, event=None):
+        sel_type = self.output_format.GetStringSelection()
+        print("change_format", "sel_type", sel_type)
+
+        if "start_seq" in FORMATS[sel_type]:
+            self.m_text_start.SetValue(FORMATS[sel_type]["start_seq"])
+            self.m_text_pin.SetValue(FORMATS[sel_type]["pin_seq"])
+            self.m_text_end.SetValue(FORMATS[sel_type]["end_seq"])
+        else:
+            self.m_text_start.SetValue("")
+            self.m_text_pin.SetValue("")
+            self.m_text_end.SetValue("")
+
+        self.update()
 
         if event:
             event.Skip()
@@ -210,7 +277,7 @@ class ActionKiCadPlugin(pcbnew.ActionPlugin):
 
     def Run(self):
         board = pcbnew.GetBoard()
-        Plugin_h = KiCadPlugin(board, self)
+        Plugin_h = KiCad_Pinout(board, self)
         Plugin_h.ShowModal()
         Plugin_h.Destroy()
 
@@ -218,6 +285,6 @@ class ActionKiCadPlugin(pcbnew.ActionPlugin):
 if __name__ == "__main__":
     app = wx.App()
     frame = wx.Frame(None, title="KiCad Plugin")
-    KiCadPlugin_t = KiCadPlugin(None, None)
+    KiCadPlugin_t = KiCad_Pinout(None, None)
     KiCadPlugin_t.ShowModal()
     KiCadPlugin_t.Destroy()
