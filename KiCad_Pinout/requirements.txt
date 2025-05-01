@@ -1,0 +1,3 @@
+kicad-python
+numpy
+wxPython
