@@ -4,6 +4,13 @@ import pprint
 import re
 import configparser
 from pathlib import Path
+import logging
+
+logging.basicConfig(
+    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+logging.info("The plugin has been loaded successfully.")
 
 # Try to import the KiCad manager
 try:
@@ -14,7 +21,7 @@ try:
         from .GUI import GUI_Dialog
         from .kicad_manager import KiCadBoardManager
 except ImportError:
-    print("Failed to import KiCadBoardManager")
+    logging.error("Failed to import KiCadBoardManager")
 
 # For backwards compatibility, try to import pcbnew directly
 try:
@@ -118,7 +125,7 @@ def format_pins(data, start_seq, pin_seq, end_seq):
         # Start
         error = validate_format_string(start_seq, ["reference", "value", "description"])
         if error:
-            print(f"Validation Error: {error}")
+            logging.error(f"Validation Error: {error}")
         else:
             output.append(
                 start_seq.format(
@@ -133,7 +140,7 @@ def format_pins(data, start_seq, pin_seq, end_seq):
             pin_seq, ["pin_function", "netname", "number", "pin_type", "connected"]
         )
         if error:
-            print(f"Validation Error: {error}")
+            logging.error(f"Validation Error: {error}")
         else:
             for pin in item["pins"]:
                 output.append(
@@ -149,7 +156,7 @@ def format_pins(data, start_seq, pin_seq, end_seq):
         # End
         error = validate_format_string(end_seq, ["reference", "value", "description"])
         if error:
-            print(f"Validation Error: {error}")
+            logging.error(f"Validation Error: {error}")
         else:
             output.append(
                 end_seq.format(
@@ -176,14 +183,14 @@ class KiCad_Pinout(GUI_Dialog):
         ini_path = Path(__file__).parent / "options.ini"
         if not ini_path.exists():
             write_ini(ini_path, FORMATS)
-            print(f"Created {ini_path}")
+            logging.debug(f"Created {ini_path}")
 
         try:
             config = read_ini(ini_path)
             if config:
                 globals()["FORMATS"] = config
         except Exception as e:
-            print(f"Error reading options.ini: {e}")
+            logging.error(f"Error reading options.ini: {e}")
 
         self.output_format.Set(list(FORMATS.keys()))
         self.output_format.SetSelection(0)
@@ -193,7 +200,7 @@ class KiCad_Pinout(GUI_Dialog):
 
     def update(self, event=None):
         sel_type = self.output_format.GetStringSelection()
-        print("change_format", "sel_type", sel_type)
+        logging.debug("change_format", "sel_type", sel_type)
 
         footprint_list = []
 
@@ -218,7 +225,7 @@ class KiCad_Pinout(GUI_Dialog):
                     }
                 )
         pptext = pprint.pformat(footprint_list)
-        print(pptext)
+        logging.debug(pptext)
 
         start_seq = self.m_text_start.GetValue()
         pin_seq = self.m_text_pin.GetValue()
@@ -239,7 +246,7 @@ class KiCad_Pinout(GUI_Dialog):
 
     def change_format(self, event=None):
         sel_type = self.output_format.GetStringSelection()
-        print("change_format", "sel_type", sel_type)
+        logging.debug("change_format", "sel_type", sel_type)
 
         if "start_seq" in FORMATS[sel_type]:
             self.m_text_start.SetValue(FORMATS[sel_type]["start_seq"])

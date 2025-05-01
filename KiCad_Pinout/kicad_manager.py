@@ -1,8 +1,16 @@
+import logging
+
+logging.basicConfig(
+    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+
 # Check if the traditional KiCad API is available
 def has_pcbnew():
     try:
         import pcbnew
 
+        logging.info("load pcbnew")
         return True
     except ImportError:
         return False
@@ -13,8 +21,10 @@ def has_IPC():
     try:
         from kipy import KiCad
 
+        logging.info("load kipy")
         return True
     except ImportError:
+        logging.error("ImportError pcbnew")
         return False
 
 
@@ -26,7 +36,7 @@ def connect_kicad():
         kicad.get_version()
         return kicad
     except BaseException as e:
-        print(f"Not connected to KiCad: {e}")
+        logging.error(f"Not connected to KiCad: {e}")
         return None
 
 
@@ -49,8 +59,8 @@ class KiCadBoardManager:
     """
 
     def __init__(self):
-        self.using_pcbnew = has_pcbnew()
         self.using_IPC = has_IPC()
+        self.using_pcbnew = has_pcbnew() if not self.using_IPC else False
 
         if not (self.using_pcbnew or self.using_IPC):
             raise ImportError("No KiCad API available.")
@@ -61,17 +71,18 @@ class KiCadBoardManager:
 
     def connect(self):
         """Connect to the appropriate KiCad API"""
-        if self.using_pcbnew:
-            import pcbnew
-
-            self.pcbnew_board = pcbnew.GetBoard()
-            return True
-        elif self.using_IPC:
+        if self.using_IPC:
             from kipy import KiCad
             from kipy.board import Board
 
             kicad: KiCad = connect_kicad()
             self.IPC_board: Board = kicad.get_board()
+            logging.info("self.IPC_board", self.IPC_board)
+            return True
+        elif self.using_pcbnew:
+            import pcbnew
+
+            self.pcbnew_board = pcbnew.GetBoard()
             return True
         return False
 
