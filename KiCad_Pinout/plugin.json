@@ -1,0 +1,28 @@
+{
+  "$schema": "https://go.kicad.org/api/schemas/v1",
+  "identifier": "com.github.Steffen-W.KiCad_Pinout",
+  "name": "KiCad_Pinout",
+  "description": "KiCad_Pinout: generates formatted pinout documentation from PCB components. ",
+  "runtime": {
+    "type": "python",
+    "version": "3"
+  },
+  "actions": [
+    {
+      "identifier": "KiCad_Pinout-action",
+      "name": "Action",
+      "description": "KiCad_Pinout",
+      "show-button": true,
+      "scopes": [
+        "pcb"
+      ],
+      "entrypoint": "Plugin_action.py",
+      "icons-light": [
+        "icon.png"
+      ],
+      "icons-dark": [
+        "icon.png"
+      ]
+    }
+  ]
+}
