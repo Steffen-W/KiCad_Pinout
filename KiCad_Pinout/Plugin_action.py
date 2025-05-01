@@ -1,9 +1,9 @@
-import os
 import sys
 import wx
 import pprint
 import re
 import configparser
+from pathlib import Path
 
 # Try to import the KiCad manager
 try:
@@ -31,18 +31,15 @@ FORMATS = {
     "python": {},
     "markdown": {
         "start_seq": """Pinout for {reference}
-
+        
 | Pin number    | Pin name      | Pin net       |
 |---------------|---------------|---------------|""",
         "pin_seq": "| {number}\t\t| {pin_function}\t\t| {netname}\t\t|",
         "end_seq": "",
     },
     "html": {
-        "start_seq": """<p>Pinout for {reference}</p>
-<table>
-	<tr><th>Pin number</th><th>Pin name</th><th>Pin net</th></tr>
-""",
-        "pin_seq": "	<tr><td>{number}</td><td>{pin_function}</td><td>{netname}</td></tr>",
+        "start_seq": """<p>Pinout for {reference}</p> <table><tr><th>Pin number</th><th>Pin name</th><th>Pin net</th></tr>""",
+        "pin_seq": "<tr><td>{number}</td><td>{pin_function}</td><td>{netname}</td></tr>",
         "end_seq": "</table>",
     },
 }
@@ -52,25 +49,43 @@ def read_ini(file_path):
     """
     Reads an INI file and converts it to a Python dictionary.
 
-    :param file_path: Path to the INI file.
+    :param file_path: Path to the INI file (str or Path object).
     :return: A dictionary with the INI file content.
     """
     config = configparser.ConfigParser()
     config.read(file_path)
-    return {section: dict(config.items(section)) for section in config.sections()}
+
+    result = {}
+    for section in config.sections():
+        result[section] = {}
+        for key, value in config.items(section):
+            # Convert escaped newlines back to actual newlines
+            if isinstance(value, str) and "\\n" in value:
+                value = value.replace("\\n", "\n")
+            result[section][key] = value
+
+    return result
 
 
 def write_ini(file_path, data):
     """
     Writes a Python dictionary into an INI file.
 
-    :param file_path: Path to the INI file.
+    :param file_path: Path to the INI file (str or Path object).
     :param data: A dictionary containing the INI content.
     """
     config = configparser.ConfigParser()
     for section, values in data.items():
-        config[section] = values
-    with open(file_path, "w") as file:
+        config[section] = {}
+        for key, value in values.items():
+            # Convert multi-line strings to properly formatted INI entries
+            if isinstance(value, str) and "\n" in value:
+                value = value.replace("\n", "\\n")
+            config[section][key] = value
+
+    # Convert to Path object if it's not already
+    file_path = Path(file_path)
+    with file_path.open("w") as file:
         config.write(file)
 
 
@@ -155,29 +170,25 @@ class KiCad_Pinout(GUI_Dialog):
         self.Bind(wx.EVT_CHAR_HOOK, self.on_key_press)
 
         self.manager = manager or KiCadBoardManager()
-        self.config = {}  # todo
 
         self.output_format.Bind(wx.EVT_CHOICE, self.update)
-        # self.pinNameCB.Bind(wx.EVT_CHECKBOX, self.update)
-        # self.pinNameFilter.Bind(wx.EVT_TEXT, self.update)
 
-        # write_ini("options.ini", FORMATS)
-        # config = read_ini("options.ini")
-        # print(config)
+        ini_path = Path(__file__).parent / "options.ini"
+        if not ini_path.exists():
+            write_ini(ini_path, FORMATS)
+            print(f"Created {ini_path}")
+
+        try:
+            config = read_ini(ini_path)
+            if config:
+                globals()["FORMATS"] = config
+        except Exception as e:
+            print(f"Error reading options.ini: {e}")
 
         self.output_format.Set(list(FORMATS.keys()))
         self.output_format.SetSelection(0)
 
-        start_seq = "// {reference} {value}"
-        pin_seq = "#define {pin_function} {netname}"
-        end_seq = "//"
-        self.m_text_start.Clear()
-        self.m_text_start.WriteText(start_seq)
-        self.m_text_pin.Clear()
-        self.m_text_pin.WriteText(pin_seq)
-        self.m_text_end.Clear()
-        self.m_text_end.WriteText(end_seq)
-
+        self.change_format()
         self.update()
 
     def update(self, event=None):
@@ -264,8 +275,9 @@ class ActionKiCadPlugin:
         self.category = "Read PCB"
         self.description = "Generates pinout exports from the PCB nets"
         self.show_toolbar_button = True
-        self.icon_file_name = os.path.join(os.path.dirname(__file__), "icon.png")
-        self.dark_icon_file_name = os.path.join(os.path.dirname(__file__), "icon.png")
+        icon_path = Path(__file__).parent / "icon.png"
+        self.icon_file_name = str(icon_path)
+        self.dark_icon_file_name = str(icon_path)
 
         # Detect if we're in a pcbnew environment
         if "pcbnew" in sys.modules:
