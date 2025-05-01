@@ -1,3 +1,9 @@
+![Static Badge](https://img.shields.io/badge/Supports_KiCad-v6%2C_v7%2C_v8%2C_v9-%23314cb0)
+![Static Badge](https://img.shields.io/badge/Supports-Windows%2C_Mac%2C_Linux-Green)
+
+[![GitHub Release](https://img.shields.io/github/release/Steffen-W/Import-LIB-KiCad-Plugin.svg)](https://github.com/Steffen-W/Import-LIB-KiCad-Plugin/releases/latest)
+[![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Steffen-W/KiCad_Pinout/total)](https://github.com/Steffen-W/KiCad_Pinout/releases/latest/download/KiCad_Pinout.zip)
+
 # KiCad Pinout Generator
 
 A KiCad plugin that generates formatted pinout documentation from PCB components. Supports both KiCad 6 (legacy API) and KiCad 9+ (new IPC API), allowing seamless operation across different KiCad versions.
