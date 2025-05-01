@@ -107,8 +107,8 @@ def format_pins(data, start_seq, pin_seq, end_seq):
         else:
             output.append(
                 start_seq.format(
-                    reference=item["Reference"],
-                    value=item["Value"],
+                    reference=item["reference"],
+                    value=item["value"],
                     description=item["description"],
                 )
             )
@@ -123,11 +123,11 @@ def format_pins(data, start_seq, pin_seq, end_seq):
             for pin in item["pins"]:
                 output.append(
                     pin_seq.format(
-                        pin_function=pin.get("PinFunction", ""),
-                        netname=pin.get("Netname", ""),
-                        number=pin.get("Number", ""),
-                        pin_type=pin.get("PinType", ""),
-                        connected=pin.get("Connected", False),
+                        pin_function=pin.get("pin_function", ""),
+                        netname=pin.get("netname", ""),
+                        number=pin.get("number", ""),
+                        pin_type=pin.get("pin_type", ""),
+                        connected=pin.get("connected", False),
                     )
                 )
 
@@ -138,8 +138,8 @@ def format_pins(data, start_seq, pin_seq, end_seq):
         else:
             output.append(
                 end_seq.format(
-                    reference=item["Reference"],
-                    value=item["Value"],
+                    reference=item["reference"],
+                    value=item["value"],
                     description=item["description"],
                 )
             )
@@ -200,8 +200,8 @@ class KiCad_Pinout(GUI_Dialog):
 
                 footprint_list.append(
                     {
-                        "Value": Value,
-                        "Reference": Reference,
+                        "value": Value,
+                        "reference": Reference,
                         "description": description,
                         "pins": pins,
                     }

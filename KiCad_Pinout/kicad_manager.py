@@ -130,11 +130,11 @@ class KiCadBoardManager:
 
                     pins.append(
                         {
-                            "Number": number,
-                            "PinFunction": pad.GetPinFunction(),
-                            "PinType": pad.GetPinType(),
-                            "Netname": pad.GetNetname(),
-                            "Connected": ("no_connect" not in pad.GetPinType())
+                            "number": number,
+                            "pin_function": pad.GetPinFunction(),
+                            "pin_type": pad.GetPinType(),
+                            "netname": pad.GetNetname(),
+                            "connected": ("no_connect" not in pad.GetPinType())
                             and pad.IsConnected(),
                         }
                     )
@@ -148,11 +148,11 @@ class KiCadBoardManager:
             for pad in all_pads:
                 pins.append(
                     {
-                        "Number": number,
-                        "PinFunction": pad.number,
-                        "PinType": get_pad_type_name(pad.pad_type),
-                        "Netname": pad.net.name if pad.net else "",
-                        "Connected": bool(pad.net and pad.net.name),
+                        "number": number,
+                        "pin_function": pad.number,
+                        "pin_type": get_pad_type_name(pad.pad_type),
+                        "netname": pad.net.name if pad.net else "",
+                        "connected": bool(pad.net and pad.net.name),
                     }
                 )
                 number += 1
