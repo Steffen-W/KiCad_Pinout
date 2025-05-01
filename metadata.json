@@ -25,7 +25,7 @@
         "library"
     ],
     "keep_on_update": [
-        ".*/config.ini"
+        ".*/options.ini"
     ],
     "versions": [
         {
