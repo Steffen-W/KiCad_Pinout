@@ -5,12 +5,32 @@ import re
 import configparser
 from pathlib import Path
 import logging
+import os
 
 logging.basicConfig(
-    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
+    level=logging.DEBUG,
+    format="%(asctime)s %(levelname)s [%(filename)s:%(lineno)d]: %(message)s",
+    filename="plugin.log",
+    filemode="a",
 )
 
-logging.info("The plugin has been loaded successfully.")
+try:
+    venv = os.environ.get("VIRTUAL_ENV")
+    if venv:
+        version = "python{}.{}".format(sys.version_info.major, sys.version_info.minor)
+        venv_site_packages = os.path.join(venv, "lib", version, "site-packages")
+
+        if venv_site_packages in sys.path:
+            sys.path.remove(venv_site_packages)
+
+        sys.path.insert(0, venv_site_packages)
+
+    import wx
+    from kipy import KiCad, errors, board
+    from kipy.proto.common.types.base_types_pb2 import DocumentType
+except Exception as e:
+    logging.exception("Import Module")
+
 
 # Try to import the KiCad manager
 try:
@@ -28,6 +48,8 @@ try:
     import pcbnew
 except ImportError:
     pcbnew = None
+
+logging.info("The plugin has been loaded successfully.")
 
 FORMATS = {
     "c_define": {
@@ -225,7 +247,7 @@ class KiCad_Pinout(GUI_Dialog):
                     }
                 )
         pptext = pprint.pformat(footprint_list)
-        logging.debug(pptext)
+        logging.debug("footprint_list", pptext)
 
         start_seq = self.m_text_start.GetValue()
         pin_seq = self.m_text_pin.GetValue()

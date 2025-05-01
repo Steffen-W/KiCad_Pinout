@@ -24,7 +24,7 @@ def has_IPC():
         logging.info("load kipy")
         return True
     except ImportError:
-        logging.error("ImportError pcbnew")
+        logging.error("ImportError kipy")
         return False
 
 
@@ -83,7 +83,9 @@ class KiCadBoardManager:
             import pcbnew
 
             self.pcbnew_board = pcbnew.GetBoard()
+            logging.info("self.pcbnew_board", self.pcbnew_board)
             return True
+        logging.error("connect")
         return False
 
     def get_selected_footprints(self):
