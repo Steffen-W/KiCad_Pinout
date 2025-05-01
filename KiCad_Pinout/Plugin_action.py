@@ -1,14 +1,26 @@
-import pcbnew
 import os
+import sys
 import wx
 import pprint
 import re
 import configparser
 
-if __name__ == "__main__":
-    from GUI import GUI_Dialog
-else:
-    from .GUI import GUI_Dialog
+# Try to import the KiCad manager
+try:
+    if __name__ == "__main__":
+        from GUI import GUI_Dialog
+        from kicad_manager import KiCadBoardManager
+    else:
+        from .GUI import GUI_Dialog
+        from .kicad_manager import KiCadBoardManager
+except ImportError:
+    print("Failed to import KiCadBoardManager")
+
+# For backwards compatibility, try to import pcbnew directly
+try:
+    import pcbnew
+except ImportError:
+    pcbnew = None
 
 FORMATS = {
     "c_define": {
@@ -126,7 +138,7 @@ def format_pins(data, start_seq, pin_seq, end_seq):
         else:
             output.append(
                 end_seq.format(
-                    veference=item["Reference"],
+                    reference=item["Reference"],
                     value=item["Value"],
                     description=item["description"],
                 )
@@ -135,39 +147,14 @@ def format_pins(data, start_seq, pin_seq, end_seq):
     return "\n".join(output)
 
 
-def get_pins(component: pcbnew.FOOTPRINT):
-    pinout = []
-    seen_numbers = set()  # to avoid duplicates
-    for pad in component.Pads():
-        if isinstance(pad, pcbnew.PAD):
-            number = pad.GetNumber()
-            if number in seen_numbers:
-                continue
-            else:
-                seen_numbers.add(number)
-
-            pinout.append(
-                {
-                    "Number": number,
-                    "PinFunction": pad.GetPinFunction(),
-                    "PinType": pad.GetPinType(),
-                    "Netname": pad.GetNetname(),
-                    "Connected": ("no_connect" not in pad.GetPinType())
-                    and pad.IsConnected(),
-                }
-            )
-    return pinout
-
-
 class KiCad_Pinout(GUI_Dialog):
 
-    def __init__(self, board: pcbnew.BOARD, action: pcbnew.ActionPlugin):
+    def __init__(self, manager=None):
         super(KiCad_Pinout, self).__init__(None)
         self.Bind(wx.EVT_MENU, self.on_escape, id=wx.ID_CLOSE)
         self.Bind(wx.EVT_CHAR_HOOK, self.on_key_press)
 
-        self.board = board
-        self.action = action
+        self.manager = manager or KiCadBoardManager()
         self.config = {}  # todo
 
         self.output_format.Bind(wx.EVT_CHOICE, self.update)
@@ -198,26 +185,27 @@ class KiCad_Pinout(GUI_Dialog):
         print("change_format", "sel_type", sel_type)
 
         footprint_list = []
-        for footprint in self.board.GetFootprints():
-            if isinstance(footprint, pcbnew.FOOTPRINT):
-                if footprint.IsSelected():
 
-                    Value = footprint.GetValue()  # like ESP32-S2FH4
-                    Reference = footprint.GetReference()  # like IC1
-                    description = ""  # footprint.GetLibDescription()
-                    pins = get_pins(footprint)
+        # Ensure connection to KiCad
+        if self.manager.connect():
+            # Using the manager to get footprints
+            for footprint in self.manager.get_selected_footprints():
+                Value = self.manager.get_footprint_value(footprint)
+                Reference = self.manager.get_footprint_reference(footprint)
+                description = self.manager.get_footprint_description(footprint)
+                pins = self.manager.get_pins(footprint)
 
-                    if not pins:
-                        continue
+                if not pins:
+                    continue
 
-                    footprint_list.append(
-                        {
-                            "Value": Value,
-                            "Reference": Reference,
-                            "description": description,
-                            "pins": pins,
-                        }
-                    )
+                footprint_list.append(
+                    {
+                        "Value": Value,
+                        "Reference": Reference,
+                        "description": description,
+                        "pins": pins,
+                    }
+                )
         pptext = pprint.pformat(footprint_list)
         print(pptext)
 
@@ -266,7 +254,11 @@ class KiCad_Pinout(GUI_Dialog):
             event.Skip()
 
 
-class ActionKiCadPlugin(pcbnew.ActionPlugin):
+class ActionKiCadPlugin:
+    """
+    Action plugin that works with either pcbnew or kicad IPC
+    """
+
     def defaults(self):
         self.name = "Pinout Generator"
         self.category = "Read PCB"
@@ -275,16 +267,29 @@ class ActionKiCadPlugin(pcbnew.ActionPlugin):
         self.icon_file_name = os.path.join(os.path.dirname(__file__), "icon.png")
         self.dark_icon_file_name = os.path.join(os.path.dirname(__file__), "icon.png")
 
+        # Detect if we're in a pcbnew environment
+        if "pcbnew" in sys.modules:
+            import pcbnew
+
+            self.__class__ = type(
+                "ActionKiCadPlugin", (self.__class__, pcbnew.ActionPlugin), {}
+            )
+            pcbnew.ActionPlugin.__init__(self)
+
     def Run(self):
-        board = pcbnew.GetBoard()
-        Plugin_h = KiCad_Pinout(board, self)
-        Plugin_h.ShowModal()
-        Plugin_h.Destroy()
+        # Create and pass the KiCadBoardManager
+        manager = KiCadBoardManager()
+        if manager.connect():
+            Plugin_h = KiCad_Pinout(manager)
+            Plugin_h.ShowModal()
+            Plugin_h.Destroy()
 
 
 if __name__ == "__main__":
     app = wx.App()
     frame = wx.Frame(None, title="KiCad Plugin")
-    KiCadPlugin_t = KiCad_Pinout(None, None)
+    manager = KiCadBoardManager()
+    manager.connect()
+    KiCadPlugin_t = KiCad_Pinout(manager)
     KiCadPlugin_t.ShowModal()
     KiCadPlugin_t.Destroy()
