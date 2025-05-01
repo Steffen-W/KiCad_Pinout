@@ -1,37 +1,37 @@
 {
-    "$schema": "https://go.kicad.org/pcm/schemas/v1",
-    "name": "KiCad_Pinout",
-    "description": "KiCad_Pinout: generates formatted pinout documentation from PCB components. ",
-    "description_full": "KiCad_Pinout: generates formatted pinout documentation from PCB components. ",
-    "identifier": "com.github.Steffen-W.KiCadPinout",
-    "type": "plugin",
-    "author": {
-        "name": "Steffen W.",
-        "contact": {
-            "github": "https://github.com/Steffen-W"
-        }
-    },
-    "maintainer": {
-        "name": "Steffen W.",
-        "contact": {
-            "github": "https://github.com/Steffen-W"
-        }
-    },
-    "license": "GPL-3.0",
-    "resources": {
-        "homepage": "https://github.com/Steffen-W/KiCad_Pinout"
-    },
-    "tags": [
-        "library"
-    ],
-    "keep_on_update": [
-        ".*/options.ini"
-    ],
-    "versions": [
-        {
-            "version": "2024.00.00",
-            "status": "stable",
-            "kicad_version": "7.00"
-        }
-    ]
+  "$schema": "https://go.kicad.org/pcm/schemas/v1",
+  "name": "KiCad_Pinout",
+  "description": "KiCad_Pinout: generates formatted pinout documentation from PCB components.",
+  "description_full": "KiCad_Pinout: generates formatted pinout documentation from PCB components.",
+  "identifier": "com.github.Steffen-W.KiCadPinout",
+  "type": "plugin",
+  "author": {
+    "name": "Steffen W.",
+    "contact": {
+      "github": "https://github.com/Steffen-W"
+    }
+  },
+  "maintainer": {
+    "name": "Steffen W.",
+    "contact": {
+      "github": "https://github.com/Steffen-W"
+    }
+  },
+  "license": "GPL-3.0",
+  "resources": {
+    "homepage": "https://github.com/Steffen-W/KiCad_Pinout"
+  },
+  "tags": [
+    "library"
+  ],
+  "keep_on_update": [
+    ".*/options.ini"
+  ],
+  "versions": [
+    {
+      "version": "2025.05.01",
+      "status": "stable",
+      "kicad_version": "7.00"
+    }
+  ]
 }
