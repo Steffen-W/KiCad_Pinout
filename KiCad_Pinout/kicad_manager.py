@@ -1,12 +1,5 @@
 import logging
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s [%(filename)s:%(lineno)d]: %(message)s",
-    filename="plugin.log",
-    filemode="a",
-)
-
 
 # Check if the traditional KiCad API is available
 def has_pcbnew():
