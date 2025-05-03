@@ -10,7 +10,7 @@
   "actions": [
     {
       "identifier": "KiCad_Pinout-action",
-      "name": "Action",
+      "name": "KiCad Pinout",
       "description": "KiCad_Pinout",
       "show-button": true,
       "scopes": [

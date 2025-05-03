@@ -8,7 +8,7 @@ import logging
 import os
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s %(levelname)s [%(filename)s:%(lineno)d]: %(message)s",
     filename="plugin.log",
     filemode="a",
@@ -317,20 +317,21 @@ class ActionKiCadPlugin:
             )
             pcbnew.ActionPlugin.__init__(self)
 
+            if pcbnew.GetBoard() is None:
+                logging.debug(f"pcbnew GetBoard fail")
+
     def Run(self):
         # Create and pass the KiCadBoardManager
         manager = KiCadBoardManager()
-        if manager.connect():
-            Plugin_h = KiCad_Pinout(manager)
-            Plugin_h.ShowModal()
-            Plugin_h.Destroy()
+        Plugin_h = KiCad_Pinout(manager)
+        Plugin_h.ShowModal()
+        Plugin_h.Destroy()
 
 
 if __name__ == "__main__":
     app = wx.App()
     frame = wx.Frame(None, title="KiCad Plugin")
     manager = KiCadBoardManager()
-    manager.connect()
     KiCadPlugin_t = KiCad_Pinout(manager)
     KiCadPlugin_t.ShowModal()
     KiCadPlugin_t.Destroy()

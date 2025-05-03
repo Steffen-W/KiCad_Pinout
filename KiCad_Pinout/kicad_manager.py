@@ -1,7 +1,10 @@
 import logging
 
 logging.basicConfig(
-    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s [%(filename)s:%(lineno)d]: %(message)s",
+    filename="plugin.log",
+    filemode="a",
 )
 
 
@@ -13,6 +16,7 @@ def has_pcbnew():
         logging.info("load pcbnew")
         return True
     except ImportError:
+        logging.error("ImportError pcbnew")
         return False
 
 
@@ -60,7 +64,7 @@ class KiCadBoardManager:
 
     def __init__(self):
         self.using_IPC = has_IPC()
-        self.using_pcbnew = has_pcbnew() if not self.using_IPC else False
+        self.using_pcbnew = has_pcbnew()
 
         if not (self.using_pcbnew or self.using_IPC):
             raise ImportError("No KiCad API available.")
@@ -71,20 +75,30 @@ class KiCadBoardManager:
 
     def connect(self):
         """Connect to the appropriate KiCad API"""
+        logging.info(f"connect: IPC {self.using_IPC} pcbnew {self.using_pcbnew}")
+
+        if self.using_pcbnew:
+            import pcbnew
+
+            self.pcbnew_board = pcbnew.GetBoard()
+            if self.pcbnew_board:
+                return True
+            else:
+                self.using_pcbnew = False
+                logging.error("pcbnew.GetBoard fail")
+
         if self.using_IPC:
             from kipy import KiCad
             from kipy.board import Board
 
             kicad: KiCad = connect_kicad()
             self.IPC_board: Board = kicad.get_board()
-            logging.info("self.IPC_board", self.IPC_board)
-            return True
-        elif self.using_pcbnew:
-            import pcbnew
+            if self.IPC_board is not None:
+                return True
+            else:
+                self.using_IPC = False
+                logging.error("kicad.get_board fail")
 
-            self.pcbnew_board = pcbnew.GetBoard()
-            logging.info("self.pcbnew_board", self.pcbnew_board)
-            return True
         logging.error("connect")
         return False
 
