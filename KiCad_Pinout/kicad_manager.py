@@ -49,6 +49,10 @@ def get_pad_type_name(pad_type_value):  # only IPC
     return pad_type_map.get(pad_type_value, f"UNKNOWN_{pad_type_value}")
 
 
+def Vector2_to_mm(vector):
+    return (vector.x / 1000000, vector.y / 1000000)
+
+
 class KiCadBoardManager:
     """
     A wrapper class to handle both the traditional pcbnew API and the newer kipy API
@@ -116,9 +120,31 @@ class KiCadBoardManager:
             properties["reference"] = footprint.GetReference()
             properties["description"] = ""  # pcbnew API might not expose this directly
         elif self.using_IPC:
+            from kipy.board_types import FootprintInstance, Field
+
+            footprint: FootprintInstance = footprint
             properties["value"] = footprint.value_field.text.value
             properties["reference"] = footprint.reference_field.text.value
             properties["description"] = footprint.description_field.text.value
+            properties["position"] = Vector2_to_mm(footprint.position)
+            properties["orientation"] = footprint.orientation
+            properties["layer"] = footprint.layer
+            properties["locked"] = footprint.locked
+            properties["datasheet"] = footprint.datasheet_field.text.value
+            properties["not_in_schematic"] = footprint.attributes.not_in_schematic
+            properties["exclude_from_bill_of_materials"] = (
+                footprint.attributes.exclude_from_bill_of_materials
+            )
+            properties["exclude_from_position_files"] = (
+                footprint.attributes.exclude_from_position_files
+            )
+            properties["do_not_populate"] = footprint.attributes.do_not_populate
+            properties["mounting_style"] = footprint.attributes.mounting_style
+            properties["mpn"] = ""
+            for item in footprint.texts_and_fields:
+                if type(item) == Field and len(item.text.value):
+                    if item.name == "MPN":
+                        properties["mpn"] = item.text.value
 
         return properties
 
@@ -164,10 +190,7 @@ class KiCadBoardManager:
                         "pin_type": get_pad_type_name(pad.pad_type),
                         "netname": pad.net.name if pad.net else "",
                         "connected": bool(pad.net and pad.net.name),
-                        "position": (
-                            pad.position.x / 1000000,
-                            pad.position.y / 1000000,
-                        ),
+                        "position": Vector2_to_mm(pad.position),
                     }
                 )
 
