@@ -164,17 +164,15 @@ class KiCadBoardManager:
 
             footprint_: FootprintInstance = footprint
             all_pads = footprint_.definition.pads
-            number = 1
             for pad in all_pads:
                 pins.append(
                     {
-                        "number": number,
-                        "pin_function": pad.number,
+                        "number": pad.number,
+                        "pin_function": "pin_" + str(pad.number), #TODO
                         "pin_type": get_pad_type_name(pad.pad_type),
                         "netname": pad.net.name if pad.net else "",
                         "connected": bool(pad.net and pad.net.name),
                     }
                 )
-                number += 1
 
         return pins
