@@ -118,26 +118,29 @@ def write_ini(file_path, data):
         config.write(file)
 
 
-def validate_format_string(format_string: str, placeholders: list):
+def validate_format_string(format_string: str, item: dict):
     """
-    Validates that all placeholders in the format string are allowed by placeholders.
+    Validates that all placeholders in the format string are available in the given item.
 
     Args:
         format_string (str): The format string to validate.
-        placeholders (list): A list of valid placeholder names.
+        item (dict): The dictionary containing available keys.
+        is_pin (bool): Whether this is a pin item (which includes nested properties).
     """
 
     # Find all placeholders in the format string using a regex
     placeholders_in_string = re.findall(r"\{(\w+)\}", format_string)
 
-    # Check if any placeholders are not in the allowed list
+    # Check if any placeholders are not available in the item
+    available_keys = list(item.keys())
+
     unexpected_placeholders = [
         placeholder
         for placeholder in placeholders_in_string
-        if placeholder not in placeholders
+        if placeholder not in available_keys
     ]
     if unexpected_placeholders:
-        return f"The format string contains unexpected placeholders: {', '.join(unexpected_placeholders)}"
+        return f"The format string contains unavailable placeholders: {', '.join(unexpected_placeholders)}"
     return ""
 
 
@@ -145,48 +148,47 @@ def format_pins(data, start_seq, pin_seq, end_seq):
     output = []
     for item in data:
         # Start
-        error = validate_format_string(start_seq, ["reference", "value", "description"])
+        error = validate_format_string(start_seq, item)
         if error:
             logging.error(f"Validation Error: {error}")
         else:
-            output.append(
-                start_seq.format(
-                    reference=item["reference"],
-                    value=item["value"],
-                    description=item["description"],
-                )
-            )
+            format_args = {}
+            placeholders = re.findall(r"\{(\w+)\}", start_seq)
+            for placeholder in placeholders:
+                format_args[placeholder] = item.get(placeholder, "")
+
+            output.append(start_seq.format(**format_args))
+
+        error = ""
+        if len(item["pins"]):
+            error = validate_format_string(pin_seq, {**item["pins"][0], **item})
 
         # Main
-        error = validate_format_string(
-            pin_seq, ["pin_function", "netname", "number", "pin_type", "connected"]
-        )
         if error:
             logging.error(f"Validation Error: {error}")
         else:
             for pin in item["pins"]:
-                output.append(
-                    pin_seq.format(
-                        pin_function=pin.get("pin_function", ""),
-                        netname=pin.get("netname", ""),
-                        number=pin.get("number", ""),
-                        pin_type=pin.get("pin_type", ""),
-                        connected=pin.get("connected", False),
-                    )
-                )
+                format_args = {}
+                placeholders = re.findall(r"\{(\w+)\}", pin_seq)
+                for placeholder in placeholders:
+                    if placeholder in pin:
+                        format_args[placeholder] = pin.get(placeholder, "")
+                    else:
+                        format_args[placeholder] = item.get(placeholder, "")
+
+                output.append(pin_seq.format(**format_args))
 
         # End
-        error = validate_format_string(end_seq, ["reference", "value", "description"])
+        error = validate_format_string(end_seq, item)
         if error:
             logging.error(f"Validation Error: {error}")
         else:
-            output.append(
-                end_seq.format(
-                    reference=item["reference"],
-                    value=item["value"],
-                    description=item["description"],
-                )
-            )
+            format_args = {}
+            placeholders = re.findall(r"\{(\w+)\}", end_seq)
+            for placeholder in placeholders:
+                format_args[placeholder] = item.get(placeholder, "")
+
+            output.append(end_seq.format(**format_args))
 
     return "\n".join(output)
 
@@ -222,7 +224,7 @@ class KiCad_Pinout(GUI_Dialog):
 
     def update(self, event=None):
         sel_type = self.output_format.GetStringSelection()
-        logging.debug("change_format", "sel_type", sel_type)
+        logging.debug(f"sel_type {sel_type}")
 
         footprint_list = []
 
@@ -239,7 +241,7 @@ class KiCad_Pinout(GUI_Dialog):
                 footprint_data = {"pins": pins, **properties}
                 footprint_list.append(footprint_data)
         pptext = pprint.pformat(footprint_list)
-        logging.debug("footprint_list", pptext)
+        logging.debug(f"footprint_list: {pptext}")
 
         start_seq = self.m_text_start.GetValue()
         pin_seq = self.m_text_pin.GetValue()
@@ -260,7 +262,7 @@ class KiCad_Pinout(GUI_Dialog):
 
     def change_format(self, event=None):
         sel_type = self.output_format.GetStringSelection()
-        logging.debug("change_format", "sel_type", sel_type)
+        logging.debug(f"sel_type {sel_type}")
 
         if "start_seq" in FORMATS[sel_type]:
             self.m_text_start.SetValue(FORMATS[sel_type]["start_seq"])
