@@ -156,6 +156,7 @@ class KiCadBoardManager:
                             "netname": pad.GetNetname(),
                             "connected": ("no_connect" not in pad.GetPinType())
                             and pad.IsConnected(),
+                            "position": (None, None),
                         }
                     )
 
@@ -168,10 +169,14 @@ class KiCadBoardManager:
                 pins.append(
                     {
                         "number": pad.number,
-                        "pin_function": "pin_" + str(pad.number), #TODO
+                        "pin_function": "pin_" + str(pad.number),  # TODO
                         "pin_type": get_pad_type_name(pad.pad_type),
                         "netname": pad.net.name if pad.net else "",
                         "connected": bool(pad.net and pad.net.name),
+                        "position": (
+                            pad.position.x / 1000000,
+                            pad.position.y / 1000000,
+                        ),
                     }
                 )
 
