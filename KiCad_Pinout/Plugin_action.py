@@ -230,22 +230,14 @@ class KiCad_Pinout(GUI_Dialog):
         if self.manager.connect():
             # Using the manager to get footprints
             for footprint in self.manager.get_selected_footprints():
-                Value = self.manager.get_footprint_value(footprint)
-                Reference = self.manager.get_footprint_reference(footprint)
-                description = self.manager.get_footprint_description(footprint)
+                properties = self.manager.get_footprint_properties(footprint)
                 pins = self.manager.get_pins(footprint)
 
                 if not pins:
                     continue
 
-                footprint_list.append(
-                    {
-                        "value": Value,
-                        "reference": Reference,
-                        "description": description,
-                        "pins": pins,
-                    }
-                )
+                footprint_data = {"pins": pins, **properties}
+                footprint_list.append(footprint_data)
         pptext = pprint.pformat(footprint_list)
         logging.debug("footprint_list", pptext)
 

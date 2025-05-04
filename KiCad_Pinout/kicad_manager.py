@@ -107,29 +107,20 @@ class KiCadBoardManager:
             )
         return []
 
-    def get_footprint_value(self, footprint):
-        """Get the value of a footprint"""
-        if self.using_pcbnew:
-            return footprint.GetValue()
-        elif self.using_IPC:
-            return footprint.value_field.text.value
-        return ""
+    def get_footprint_properties(self, footprint):
+        """Get all properties of a footprint"""
+        properties = {}
 
-    def get_footprint_reference(self, footprint):
-        """Get the reference of a footprint"""
         if self.using_pcbnew:
-            return footprint.GetReference()
+            properties["value"] = footprint.GetValue()
+            properties["reference"] = footprint.GetReference()
+            properties["description"] = ""  # pcbnew API might not expose this directly
         elif self.using_IPC:
-            return footprint.reference_field.text.value
-        return ""
+            properties["value"] = footprint.value_field.text.value
+            properties["reference"] = footprint.reference_field.text.value
+            properties["description"] = footprint.description_field.text.value
 
-    def get_footprint_description(self, footprint):
-        """Get the description of a footprint"""
-        if self.using_pcbnew:
-            return ""  # pcbnew API might not expose this directly
-        elif self.using_IPC:
-            return footprint.description_field.text.value
-        return ""
+        return properties
 
     def get_pins(self, footprint):
         """Get pins from a footprint"""
