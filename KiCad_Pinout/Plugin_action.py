@@ -10,7 +10,7 @@ import os
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s %(levelname)s [%(filename)s:%(lineno)d]: %(message)s",
-    filename="plugin.log",
+    filename=Path(__file__).resolve().parent / "plugin.log",
     filemode="w",
 )
 
