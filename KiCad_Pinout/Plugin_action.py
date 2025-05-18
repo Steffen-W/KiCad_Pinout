@@ -53,23 +53,40 @@ logging.info("The plugin has been loaded successfully.")
 
 FORMATS = {
     "c_define": {
-        "start_seq": "// {reference} {value}",
-        "pin_seq": "#define {pin_function} {netname}",
-        "end_seq": "//",
+        "start_seq": "// {reference} {value}\n",
+        "pin_seq": "#define {pin_function} {netname}\n",
+        "end_seq": "\n",
     },
     "python": {},
     "markdown": {
-        "start_seq": """Pinout for {reference}
-        
-| Pin number    | Pin name      | Pin net       |
-|---------------|---------------|---------------|""",
-        "pin_seq": "| {number}\t\t| {pin_function}\t\t| {netname}\t\t|",
-        "end_seq": "",
+        "start_seq": """Pinout for {reference}\n\n| Pin number    | Pin name      | Pin net       |\n|---------------|---------------|---------------|\n""",
+        "pin_seq": "| {number}\t\t| {pin_function}\t\t| {netname}\t\t|\n",
+        "end_seq": "\n",
     },
     "html": {
-        "start_seq": """<p>Pinout for {reference}</p> <table><tr><th>Pin number</th><th>Pin name</th><th>Pin net</th></tr>""",
-        "pin_seq": "<tr><td>{number}</td><td>{pin_function}</td><td>{netname}</td></tr>",
-        "end_seq": "</table>",
+        "start_seq": """<p>Pinout for {reference}</p>\n<table>\n\t<tr><th>Pin number</th><th>Pin name</th><th>Pin net</th></tr>\n""",
+        "pin_seq": "\t<tr><td>{number}</td><td>{pin_function}</td><td>{netname}</td></tr>\n",
+        "end_seq": "</table>\n",
+    },
+    "list": {
+        "start_seq": "",
+        "pin_seq": "{number}\t{pin_function}\t{netname}\n",
+        "end_seq": "\n",
+    },
+    "csv": {
+        "start_seq": "",
+        "pin_seq": '"{number}","{pin_function}","{netname}"\n',
+        "end_seq": "\n",
+    },
+    "c_enum": {
+        "start_seq": "enum pinout_{reference} {{\n",
+        "pin_seq": "\tpin_{netname} = {pin_function},\n",
+        "end_seq": "}};\n",
+    },
+    "python_dict": {
+        "start_seq": "pinout_{reference} = {{\n",
+        "pin_seq": "\t'pin_{netname}' : '{pin_function}',\n",
+        "end_seq": "}}\n",
     },
 }
 
@@ -190,7 +207,7 @@ def format_pins(data, start_seq, pin_seq, end_seq):
 
             output.append(end_seq.format(**format_args))
 
-    return "\n".join(output)
+    return "".join(output)
 
 
 class KiCad_Pinout(GUI_Dialog):
@@ -212,7 +229,9 @@ class KiCad_Pinout(GUI_Dialog):
         try:
             config = read_ini(ini_path)
             if config:
-                globals()["FORMATS"] = config
+                for section, values in config.items():
+                    if section not in FORMATS:
+                        FORMATS[section] = values
         except Exception as e:
             logging.error(f"Error reading options.ini: {e}")
 
