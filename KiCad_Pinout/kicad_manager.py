@@ -59,7 +59,15 @@ class KiCadBoardManager:
     depending on what's available on the system.
     """
 
-    def __init__(self):
+    def __init__(self, prefer_pcbnew=True):
+        """
+        Initialize KiCad Board Manager
+
+        Args:
+            prefer_pcbnew: If True (default), prefer pcbnew API over IPC API when both are available.
+                          This is recommended as pcbnew has more complete pad information (pin_function, pin_type).
+        """
+        self.prefer_pcbnew = prefer_pcbnew
         self.using_IPC = has_IPC()
         self.using_pcbnew = has_pcbnew()
 
@@ -72,29 +80,40 @@ class KiCadBoardManager:
 
     def connect(self):
         """Connect to the appropriate KiCad API"""
-        logging.info(f"connect: IPC {self.using_IPC} pcbnew {self.using_pcbnew}")
+        logging.info(
+            f"connect: IPC {self.using_IPC} pcbnew {self.using_pcbnew} (prefer_pcbnew={self.prefer_pcbnew})"
+        )
 
-        if self.using_pcbnew:
+        # Try pcbnew first if available and preferred
+        if self.using_pcbnew and (self.prefer_pcbnew or not self.using_IPC):
             import pcbnew
 
             self.pcbnew_board = pcbnew.GetBoard()
             if self.pcbnew_board:
+                logging.info("Connected via pcbnew API (has pin_function support)")
+                # If pcbnew works and is preferred, don't use IPC
+                if self.prefer_pcbnew:
+                    self.using_IPC = False
                 return True
             else:
                 self.using_pcbnew = False
                 logging.error("pcbnew.GetBoard fail")
 
+        # Fall back to IPC if pcbnew failed or is not preferred
         if self.using_IPC:
-            from kipy import KiCad
-            from kipy.board import Board
 
-            kicad: KiCad = connect_kicad()
-            self.IPC_board: Board = kicad.get_board()
-            if self.IPC_board is not None:
-                return True
-            else:
+            kicad = connect_kicad()
+            if kicad is None:
                 self.using_IPC = False
-                logging.error("kicad.get_board fail")
+                logging.error("kicad connect fail")
+            else:
+                self.IPC_board = kicad.get_board()
+                if self.IPC_board is not None:
+                    logging.info("Connected via IPC API (pin_function not yet available)")
+                    return True
+                else:
+                    self.using_IPC = False
+                    logging.error("kicad.get_board fail")
 
         logging.error("connect")
         return False
@@ -106,9 +125,7 @@ class KiCadBoardManager:
         elif self.using_IPC and self.IPC_board:
             from kipy.proto.common.types.enums_pb2 import KiCadObjectType
 
-            return self.IPC_board.get_selection(
-                types=(KiCadObjectType.KOT_PCB_FOOTPRINT,)
-            )
+            return self.IPC_board.get_selection(types=(KiCadObjectType.KOT_PCB_FOOTPRINT,))
         return []
 
     def get_footprint_properties(self, footprint):
@@ -120,31 +137,28 @@ class KiCadBoardManager:
             properties["reference"] = footprint.GetReference()
             properties["description"] = ""  # pcbnew API might not expose this directly
         elif self.using_IPC:
-            from kipy.board_types import FootprintInstance, Field
+            from kipy.board_types import Field, FootprintInstance
 
-            footprint: FootprintInstance = footprint
-            properties["value"] = footprint.value_field.text.value
-            properties["reference"] = footprint.reference_field.text.value
-            properties["description"] = footprint.description_field.text.value
-            properties["position"] = Vector2_to_mm(footprint.position)
-            properties["orientation"] = footprint.orientation
-            properties["layer"] = footprint.layer
-            properties["locked"] = footprint.locked
-            properties["datasheet"] = footprint.datasheet_field.text.value
-            properties["not_in_schematic"] = footprint.attributes.not_in_schematic
+            fp: FootprintInstance = footprint
+            properties["value"] = fp.value_field.text.value
+            properties["reference"] = fp.reference_field.text.value
+            properties["description"] = fp.description_field.text.value
+            properties["position"] = Vector2_to_mm(fp.position)
+            properties["orientation"] = fp.orientation
+            properties["layer"] = fp.layer
+            properties["locked"] = fp.locked
+            properties["datasheet"] = fp.datasheet_field.text.value
+            properties["not_in_schematic"] = fp.attributes.not_in_schematic
             properties["exclude_from_bill_of_materials"] = (
-                footprint.attributes.exclude_from_bill_of_materials
+                fp.attributes.exclude_from_bill_of_materials
             )
-            properties["exclude_from_position_files"] = (
-                footprint.attributes.exclude_from_position_files
-            )
-            properties["do_not_populate"] = footprint.attributes.do_not_populate
-            properties["mounting_style"] = footprint.attributes.mounting_style
+            properties["exclude_from_position_files"] = fp.attributes.exclude_from_position_files
+            properties["do_not_populate"] = fp.attributes.do_not_populate
+            properties["mounting_style"] = fp.attributes.mounting_style
             properties["mpn"] = ""
-            for item in footprint.texts_and_fields:
-                if type(item) == Field and len(item.text.value):
-                    if item.name == "MPN":
-                        properties["mpn"] = item.text.value
+            for item in fp.texts_and_fields:
+                if isinstance(item, Field) and len(item.text.value) and item.name == "MPN":
+                    properties["mpn"] = item.text.value
 
         return properties
 
@@ -178,7 +192,7 @@ class KiCadBoardManager:
                     )
 
         elif self.using_IPC:
-            from kipy.board_types import FootprintInstance, Pad, PadStack
+            from kipy.board_types import FootprintInstance
 
             footprint_: FootprintInstance = footprint
             all_pads = footprint_.definition.pads
@@ -186,7 +200,8 @@ class KiCadBoardManager:
                 pins.append(
                     {
                         "number": pad.number,
-                        "pin_function": "pin_" + str(pad.number),  # TODO
+                        # TODO: pin_function not yet available in IPC API
+                        "pin_function": "pin_" + str(pad.number),
                         "pin_type": get_pad_type_name(pad.pad_type),
                         "netname": pad.net.name if pad.net else "",
                         "connected": bool(pad.net and pad.net.name),

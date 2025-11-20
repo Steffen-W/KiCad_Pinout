@@ -1,0 +1,24 @@
+[tool.black]
+line-length = 100
+target-version = ['py312']
+skip-string-normalization = false
+exclude = '''
+/(
+    \.git
+  | __pycache__
+  | build
+  | dist
+  | test/old_code_*
+  | KiCad_Pinout/GUI\.py
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+skip_gitignore = true
+known_third_party = ["wx", "pcbnew", "kipy"]
+
+[tool.bandit]
+exclude_dirs = ["test", "venv"]
+skips = ["B101"]  # Skip assert_used (common in tests)

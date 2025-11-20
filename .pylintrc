@@ -1,0 +1,102 @@
+[MASTER]
+# Use multiple processes for speed
+jobs=4
+
+# Python version
+py-version=3.12
+
+# Ignore patterns (directories and files)
+ignore=CVS,.git,__pycache__,test/old_code_*,venv,build,dist,GUI.py
+
+# Alternative: ignore by path pattern (regex)
+ignore-paths=GUI\.py$
+
+[MESSAGES CONTROL]
+# Disable formatting warnings (handled by black/ruff)
+disable=
+    # Formatting (black/ruff handles this)
+    C0301,  # line-too-long
+    C0303,  # trailing-whitespace
+    C0304,  # missing-final-newline
+    W0311,  # bad-indentation
+
+    # Docstrings (optional)
+    C0114,  # missing-module-docstring
+    C0115,  # missing-class-docstring
+    C0116,  # missing-function-docstring
+
+    # Naming (KiCad conventions)
+    C0103,  # invalid-name (KiCad uses CamelCase)
+
+    # Design (too strict for this project)
+    R0903,  # too-few-public-methods
+    R0913,  # too-many-arguments
+    R0914,  # too-many-locals
+    R0915,  # too-many-statements
+
+    # Import errors (external libs)
+    E0401,  # import-error (pcbnew, kipy, wx have no stubs)
+    E1101,  # no-member (false positives with wx, pcbnew)
+
+    # Logging
+    W1203,  # logging-fstring-interpolation (f-strings are fine in modern Python)
+
+    # Imports (needed for availability testing)
+    C0415,  # import-outside-toplevel (needed in has_pcbnew/has_IPC)
+    W0611,  # unused-import (imports used for testing availability)
+
+    # Comments
+    W0511,  # fixme (TODO comments are tracked separately)
+
+    # Exceptions
+    W0718,  # broad-exception-caught (sometimes necessary for robustness)
+
+    # Class design (KiCad plugin pattern)
+    W0201,  # attribute-defined-outside-init (defaults() pattern for KiCad)
+    C2801,  # unnecessary-dunder-call (needed for dynamic class creation)
+
+    # Arguments
+    W0613,  # unused-argument (wx event handlers require specific signature)
+    W0621,  # redefined-outer-name (local scope is intentional)
+
+    # Other
+    W0212,  # protected-access (sometimes needed for KiCad API)
+    W0107,  # unnecessary-pass (sometimes needed for structure)
+    W0404,  # reimported (conditional imports for different APIs)
+    W1514,  # unspecified-encoding (UTF-8 is default in Python 3)
+    C1802,  # use-implicit-booleaness-not-len (explicit is clearer sometimes)
+    R1705,  # no-else-return (sometimes else makes intent clearer)
+    R1724,  # no-else-continue (sometimes else makes intent clearer)
+    R0902,  # too-many-instance-attributes (wx GUI classes need many attrs)
+    E0611,  # no-name-in-module (false positives with dynamic imports)
+
+[BASIC]
+# Good variable names (short names that are acceptable)
+good-names=i,j,k,fp,x,y,id,e,f,ok
+
+# Regular expressions for acceptable names
+# Allow single lowercase letters and common abbreviations
+variable-rgx=[a-z_][a-z0-9_]{0,30}$
+
+[FORMAT]
+# Maximum line length (same as black)
+max-line-length=100
+
+# Don't check line length (black handles it)
+# This is already disabled via C0301 above
+
+[DESIGN]
+# Complexity limits (reasonable for this project)
+# Note: max-complexity is handled by other tools (ruff, radon)
+max-args=8
+max-locals=20
+max-branches=15
+max-statements=60
+
+[IMPORTS]
+# Allow wildcard imports from generated GUI
+allow-wildcard-with-all=yes
+
+[SIMILARITIES]
+# Minimum lines for duplicate code detection
+min-similarity-lines=6

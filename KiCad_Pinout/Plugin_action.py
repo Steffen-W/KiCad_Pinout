@@ -1,11 +1,12 @@
-import sys
-import wx
-import pprint
-import re
 import configparser
-from pathlib import Path
 import logging
 import os
+import pprint
+import re
+import sys
+from pathlib import Path
+
+import wx
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -17,7 +18,7 @@ logging.basicConfig(
 try:
     venv = os.environ.get("VIRTUAL_ENV")
     if venv:
-        version = "python{}.{}".format(sys.version_info.major, sys.version_info.minor)
+        version = f"python{sys.version_info.major}.{sys.version_info.minor}"
         venv_site_packages = os.path.join(venv, "lib", version, "site-packages")
 
         if venv_site_packages in sys.path:
@@ -26,9 +27,7 @@ try:
         sys.path.insert(0, venv_site_packages)
 
     import wx
-    from kipy import KiCad, errors, board
-    from kipy.proto.common.types.base_types_pb2 import DocumentType
-except Exception as e:
+except Exception:
     logging.exception("Import Module")
 
 
@@ -152,9 +151,7 @@ def validate_format_string(format_string: str, item: dict):
     available_keys = list(item.keys())
 
     unexpected_placeholders = [
-        placeholder
-        for placeholder in placeholders_in_string
-        if placeholder not in available_keys
+        placeholder for placeholder in placeholders_in_string if placeholder not in available_keys
     ]
     if unexpected_placeholders:
         return f"The format string contains unavailable placeholders: {', '.join(unexpected_placeholders)}"
@@ -213,7 +210,7 @@ def format_pins(data, start_seq, pin_seq, end_seq):
 class KiCad_Pinout(GUI_Dialog):
 
     def __init__(self, manager=None):
-        super(KiCad_Pinout, self).__init__(None)
+        super().__init__(None)
         self.Bind(wx.EVT_MENU, self.on_escape, id=wx.ID_CLOSE)
         self.Bind(wx.EVT_CHAR_HOOK, self.on_key_press)
 
@@ -325,13 +322,15 @@ class ActionKiCadPlugin:
         if "pcbnew" in sys.modules:
             import pcbnew
 
-            self.__class__ = type(
-                "ActionKiCadPlugin", (self.__class__, pcbnew.ActionPlugin), {}
-            )
+            self.__class__ = type("ActionKiCadPlugin", (self.__class__, pcbnew.ActionPlugin), {})
             pcbnew.ActionPlugin.__init__(self)
 
             if pcbnew.GetBoard() is None:
-                logging.debug(f"pcbnew GetBoard fail")
+                logging.debug("pcbnew GetBoard fail")
+
+    def register(self):
+        """Register the plugin - called by __init__.py"""
+        self.defaults()
 
     def Run(self):
         # Create and pass the KiCadBoardManager
