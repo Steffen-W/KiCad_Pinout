@@ -2,7 +2,7 @@
 ![Static Badge](https://img.shields.io/badge/Supports-Windows%2C_Mac%2C_Linux-Green)
 
 [![GitHub Release](https://img.shields.io/github/release/Steffen-W/Import-LIB-KiCad-Plugin.svg)](https://github.com/Steffen-W/Import-LIB-KiCad-Plugin/releases/latest)
-[![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Steffen-W/KiCad_Pinout/total)](https://github.com/Steffen-W/KiCad_Pinout/releases/latest/download/KiCad_Pinout.zip)
+[![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Steffen-W/KiCadPinout/total)](https://github.com/Steffen-W/KiCadPinout/releases/latest/download/KiCadPinout.zip)
 
 # KiCad Pinout Generator
 
@@ -28,6 +28,14 @@ A KiCad plugin that generates formatted pinout documentation from PCB components
 3. Click on `Tools` → `Plugin and Content Manager`
 4. Search for "Pinout Generator"
 5. Click `Install`
+
+## Standalone
+
+The GUI can be launched directly for development and testing:
+
+```bash
+python KiCadPinout/plugin_action.py
+```
 
 ## Usage
 

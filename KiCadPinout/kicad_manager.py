@@ -1,8 +1,9 @@
 import logging
+from typing import Any
 
 
 # Check if the traditional KiCad API is available
-def has_pcbnew():
+def has_pcbnew() -> bool:
     try:
         import pcbnew
 
@@ -14,7 +15,7 @@ def has_pcbnew():
 
 
 # Check if the newer KiCad IPC API is available
-def has_IPC():
+def has_ipc() -> bool:
     try:
         from kipy import KiCad
 
@@ -25,20 +26,20 @@ def has_IPC():
         return False
 
 
-def connect_kicad():
+def connect_kicad() -> Any | None:
     try:
         from kipy import KiCad
 
         kicad = KiCad()
         kicad.get_version()
         return kicad
-    except BaseException as e:
-        logging.error(f"Not connected to KiCad: {e}")
+    except Exception as e:
+        logging.error("Not connected to KiCad: %s", e)
         return None
 
 
-def get_pad_type_name(pad_type_value):  # only IPC
-    """Konvertiert einen PadType-Enum-Wert in seinen Namen"""
+def get_pad_type_name(pad_type_value: int) -> str:
+    """Converts a PadType enum value to its string name."""
     pad_type_map = {
         0: "PT_UNKNOWN",
         1: "PT_PTH",  # Plated Through Hole
@@ -49,7 +50,7 @@ def get_pad_type_name(pad_type_value):  # only IPC
     return pad_type_map.get(pad_type_value, f"UNKNOWN_{pad_type_value}")
 
 
-def Vector2_to_mm(vector):
+def vector2_to_mm(vector: Any) -> tuple[float, float]:
     return (vector.x / 1000000, vector.y / 1000000)
 
 
@@ -59,7 +60,7 @@ class KiCadBoardManager:
     depending on what's available on the system.
     """
 
-    def __init__(self, prefer_pcbnew=True):
+    def __init__(self, prefer_pcbnew: bool = True) -> None:
         """
         Initialize KiCad Board Manager
 
@@ -68,24 +69,26 @@ class KiCadBoardManager:
                           This is recommended as pcbnew has more complete pad information (pin_function, pin_type).
         """
         self.prefer_pcbnew = prefer_pcbnew
-        self.using_IPC = has_IPC()
+        self.using_ipc = has_ipc()
         self.using_pcbnew = has_pcbnew()
 
-        if not (self.using_pcbnew or self.using_IPC):
+        if not (self.using_pcbnew or self.using_ipc):
             raise ImportError("No KiCad API available.")
 
-        self.pcbnew_board = None
-        self.kipy_kicad = None
-        self.IPC_board = None
+        self.pcbnew_board: Any | None = None
+        self.ipc_board: Any | None = None
 
-    def connect(self):
+    def connect(self) -> bool:
         """Connect to the appropriate KiCad API"""
         logging.info(
-            f"connect: IPC {self.using_IPC} pcbnew {self.using_pcbnew} (prefer_pcbnew={self.prefer_pcbnew})"
+            "connect: IPC %s pcbnew %s (prefer_pcbnew=%s)",
+            self.using_ipc,
+            self.using_pcbnew,
+            self.prefer_pcbnew,
         )
 
         # Try pcbnew first if available and preferred
-        if self.using_pcbnew and (self.prefer_pcbnew or not self.using_IPC):
+        if self.using_pcbnew and (self.prefer_pcbnew or not self.using_ipc):
             import pcbnew
 
             self.pcbnew_board = pcbnew.GetBoard()
@@ -93,57 +96,58 @@ class KiCadBoardManager:
                 logging.info("Connected via pcbnew API (has pin_function support)")
                 # If pcbnew works and is preferred, don't use IPC
                 if self.prefer_pcbnew:
-                    self.using_IPC = False
+                    self.using_ipc = False
                 return True
-            else:
-                self.using_pcbnew = False
-                logging.error("pcbnew.GetBoard fail")
+            self.using_pcbnew = False
+            logging.error("pcbnew.GetBoard fail")
 
         # Fall back to IPC if pcbnew failed or is not preferred
-        if self.using_IPC:
-
+        if self.using_ipc:
             kicad = connect_kicad()
             if kicad is None:
-                self.using_IPC = False
+                self.using_ipc = False
                 logging.error("kicad connect fail")
             else:
-                self.IPC_board = kicad.get_board()
-                if self.IPC_board is not None:
-                    logging.info("Connected via IPC API (pin_function not yet available)")
+                self.ipc_board = kicad.get_board()
+                if self.ipc_board is not None:
+                    logging.info(
+                        "Connected via IPC API (pin_function not yet available)"
+                    )
                     return True
-                else:
-                    self.using_IPC = False
-                    logging.error("kicad.get_board fail")
+                self.using_ipc = False
+                logging.error("kicad.get_board fail")
 
-        logging.error("connect")
+        logging.error("No KiCad API could be connected")
         return False
 
-    def get_selected_footprints(self):
+    def get_selected_footprints(self) -> list[Any]:
         """Get selected footprints from the board"""
         if self.using_pcbnew and self.pcbnew_board:
             return [fp for fp in self.pcbnew_board.GetFootprints() if fp.IsSelected()]
-        elif self.using_IPC and self.IPC_board:
+        if self.using_ipc and self.ipc_board:
             from kipy.proto.common.types.enums_pb2 import KiCadObjectType
 
-            return self.IPC_board.get_selection(types=(KiCadObjectType.KOT_PCB_FOOTPRINT,))
+            return list(
+                self.ipc_board.get_selection(types=(KiCadObjectType.KOT_PCB_FOOTPRINT,))
+            )
         return []
 
-    def get_footprint_properties(self, footprint):
+    def get_footprint_properties(self, footprint: Any) -> dict[str, Any]:
         """Get all properties of a footprint"""
-        properties = {}
+        properties: dict[str, Any] = {}
 
         if self.using_pcbnew:
             properties["value"] = footprint.GetValue()
             properties["reference"] = footprint.GetReference()
             properties["description"] = ""  # pcbnew API might not expose this directly
-        elif self.using_IPC:
+        elif self.using_ipc:
             from kipy.board_types import Field, FootprintInstance
 
             fp: FootprintInstance = footprint
             properties["value"] = fp.value_field.text.value
             properties["reference"] = fp.reference_field.text.value
             properties["description"] = fp.description_field.text.value
-            properties["position"] = Vector2_to_mm(fp.position)
+            properties["position"] = vector2_to_mm(fp.position)
             properties["orientation"] = fp.orientation
             properties["layer"] = fp.layer
             properties["locked"] = fp.locked
@@ -152,32 +156,37 @@ class KiCadBoardManager:
             properties["exclude_from_bill_of_materials"] = (
                 fp.attributes.exclude_from_bill_of_materials
             )
-            properties["exclude_from_position_files"] = fp.attributes.exclude_from_position_files
+            properties["exclude_from_position_files"] = (
+                fp.attributes.exclude_from_position_files
+            )
             properties["do_not_populate"] = fp.attributes.do_not_populate
             properties["mounting_style"] = fp.attributes.mounting_style
             properties["mpn"] = ""
             for item in fp.texts_and_fields:
-                if isinstance(item, Field) and len(item.text.value) and item.name == "MPN":
+                if (
+                    isinstance(item, Field)
+                    and len(item.text.value)
+                    and item.name == "MPN"
+                ):
                     properties["mpn"] = item.text.value
 
         return properties
 
-    def get_pins(self, footprint):
+    def get_pins(self, footprint: Any) -> list[dict[str, Any]]:
         """Get pins from a footprint"""
-        pins = []
+        pins: list[dict[str, Any]] = []
 
         if self.using_pcbnew:
             import pcbnew
 
-            seen_numbers = set()
+            seen_numbers: set[str] = set()
 
             for pad in footprint.Pads():
                 if isinstance(pad, pcbnew.PAD):
                     number = pad.GetNumber()
                     if number in seen_numbers:
                         continue
-                    else:
-                        seen_numbers.add(number)
+                    seen_numbers.add(number)
 
                     pins.append(
                         {
@@ -191,7 +200,7 @@ class KiCadBoardManager:
                         }
                     )
 
-        elif self.using_IPC:
+        elif self.using_ipc:
             from kipy.board_types import FootprintInstance
 
             footprint_: FootprintInstance = footprint
@@ -200,12 +209,13 @@ class KiCadBoardManager:
                 pins.append(
                     {
                         "number": pad.number,
-                        # TODO: pin_function not yet available in IPC API
-                        "pin_function": "pin_" + str(pad.number),
+                        # pad.pin_function available from KiCad 10 (kicad#22360)
+                        "pin_function": getattr(pad, "pin_function", None)
+                        or "pin_" + str(pad.number),
                         "pin_type": get_pad_type_name(pad.pad_type),
                         "netname": pad.net.name if pad.net else "",
                         "connected": bool(pad.net and pad.net.name),
-                        "position": Vector2_to_mm(pad.position),
+                        "position": vector2_to_mm(pad.position),
                     }
                 )
 
