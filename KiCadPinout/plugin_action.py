@@ -56,7 +56,7 @@ FORMATS: dict[str, dict[str, str]] = {
     },
     "python": {},
     "markdown": {
-        "start_seq": """Pinout for {reference}\n\n| Pin number    | Pin name      | Pin net       |\n|---------------|---------------|---------------|\n""",
+        "start_seq": "## {reference} ({value})\n\n| Pin | Name | Net |\n|---------------|---------------|---------------|\n",
         "pin_seq": "| {number}\t\t| {pin_function}\t\t| {netname}\t\t|\n",
         "end_seq": "\n",
     },
@@ -66,23 +66,23 @@ FORMATS: dict[str, dict[str, str]] = {
         "end_seq": "</table>\n",
     },
     "list": {
-        "start_seq": "",
+        "start_seq": "{reference} {value}\n",
         "pin_seq": "{number}\t{pin_function}\t{netname}\n",
         "end_seq": "\n",
     },
     "csv": {
-        "start_seq": "",
+        "start_seq": "number,name,net\n",
         "pin_seq": '"{number}","{pin_function}","{netname}"\n',
         "end_seq": "\n",
     },
     "c_enum": {
         "start_seq": "enum pinout_{reference} {{\n",
-        "pin_seq": "\tpin_{netname} = {pin_function},\n",
+        "pin_seq": "\tpin_{pin_function} = {number},\n",
         "end_seq": "}};\n",
     },
     "python_dict": {
         "start_seq": "pinout_{reference} = {{\n",
-        "pin_seq": "\t'pin_{netname}' : '{pin_function}',\n",
+        "pin_seq": "\t'{pin_function}' : '{netname}',\n",
         "end_seq": "}}\n",
     },
 }
@@ -197,6 +197,13 @@ class KiCadPinout(PinoutDialog):  # type: ignore[misc]
         self.Bind(wx.EVT_MENU, self.on_escape, id=wx.ID_CLOSE)
         self.Bind(wx.EVT_CHAR_HOOK, self.on_key_press)
 
+        self.m_checkCleanNames = wx.CheckBox(self, wx.ID_ANY, "Clean names")
+        self.m_checkCleanNames.SetValue(True)
+        self.m_checkCleanNames.Bind(wx.EVT_CHECKBOX, self.update)
+        self.m_buttonUpdate.GetContainingSizer().Add(
+            self.m_checkCleanNames, 0, wx.ALIGN_CENTER | wx.ALL, 5
+        )
+
         self.manager = manager or KiCadBoardManager()
 
         self.output_format.Bind(wx.EVT_CHOICE, self.update)
@@ -232,7 +239,9 @@ class KiCadPinout(PinoutDialog):  # type: ignore[misc]
             # Using the manager to get footprints
             for footprint in self.manager.get_selected_footprints():
                 properties = self.manager.get_footprint_properties(footprint)
-                pins = self.manager.get_pins(footprint)
+                pins = self.manager.get_pins(
+                    footprint, clean_names=self.m_checkCleanNames.GetValue()
+                )
 
                 if not pins:
                     continue

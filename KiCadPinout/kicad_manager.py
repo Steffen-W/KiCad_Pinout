@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import Any
 
 
@@ -48,6 +49,28 @@ def get_pad_type_name(pad_type_value: int) -> str:
         4: "PT_NPTH",  # Non-Plated Through Hole
     }
     return pad_type_map.get(pad_type_value, f"UNKNOWN_{pad_type_value}")
+
+
+def _clean_netname(netname: str) -> str:
+    """Normalizes KiCad net names for readable output.
+    unconnected-(...) -> NC, Net-(J1-Pin_1) -> NET_J1-Pin_1, /Sheet/sig -> Sheet_sig
+    """
+    if netname.startswith("unconnected-"):
+        return "NC"
+    if netname.startswith("Net-(") and netname.endswith(")"):
+        return "NET_" + netname[5:-1]
+    if netname.startswith("/"):
+        return netname.replace("/", "_").replace(" ", "_").lstrip("_")
+    return netname
+
+
+def _clean_identifier(name: str) -> str:
+    """Converts KiCad pin/net names to valid C identifiers.
+    ~{CS} -> NOT_CS, V_{A} -> V_A, spaces -> _
+    """
+    name = re.sub(r"~\{([^}]+)\}", r"NOT_\1", name)
+    name = name.replace("{", "").replace("}", "").replace(" ", "_")
+    return name
 
 
 def vector2_to_mm(vector: Any) -> tuple[float, float]:
@@ -172,9 +195,17 @@ class KiCadBoardManager:
 
         return properties
 
-    def get_pins(self, footprint: Any) -> list[dict[str, Any]]:
+    def get_pins(
+        self, footprint: Any, clean_names: bool = True
+    ) -> list[dict[str, Any]]:
         """Get pins from a footprint"""
         pins: list[dict[str, Any]] = []
+
+        def clean_id(s: str) -> str:
+            return _clean_identifier(s) if clean_names else s
+
+        def clean_net(s: str) -> str:
+            return _clean_netname(s) if clean_names else s
 
         if self.using_pcbnew:
             import pcbnew
@@ -191,9 +222,9 @@ class KiCadBoardManager:
                     pins.append(
                         {
                             "number": number,
-                            "pin_function": pad.GetPinFunction(),
+                            "pin_function": clean_id(pad.GetPinFunction()),
                             "pin_type": pad.GetPinType(),
-                            "netname": pad.GetNetname(),
+                            "netname": clean_net(pad.GetNetname()),
                             "connected": ("no_connect" not in pad.GetPinType())
                             and pad.IsConnected(),
                             "position": (None, None),
@@ -210,10 +241,12 @@ class KiCadBoardManager:
                     {
                         "number": pad.number,
                         # pad.pin_function available from KiCad 10 (kicad#22360)
-                        "pin_function": getattr(pad, "pin_function", None)
-                        or "pin_" + str(pad.number),
+                        "pin_function": clean_id(
+                            getattr(pad, "pin_function", None)
+                            or "pin_" + str(pad.number)
+                        ),
                         "pin_type": get_pad_type_name(pad.pad_type),
-                        "netname": pad.net.name if pad.net else "",
+                        "netname": clean_net(pad.net.name if pad.net else ""),
                         "connected": bool(pad.net and pad.net.name),
                         "position": vector2_to_mm(pad.position),
                     }
