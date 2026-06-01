@@ -73,6 +73,10 @@ def _clean_identifier(name: str) -> str:
     return name
 
 
+def natural_sort_key(s: str) -> list[int | str]:
+    return [int(c) if c.isdigit() else c.lower() for c in re.split(r"(\d+)", s)]
+
+
 def vector2_to_mm(vector: Any) -> tuple[float, float]:
     return (vector.x / 1000000, vector.y / 1000000)
 
@@ -252,4 +256,5 @@ class KiCadBoardManager:
                     }
                 )
 
+        pins.sort(key=lambda p: natural_sort_key(str(p["number"])))
         return pins

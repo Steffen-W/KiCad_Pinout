@@ -42,9 +42,9 @@ except Exception:
 
 
 if __name__ == "__main__":
-    from kicad_manager import KiCadBoardManager
+    from kicad_manager import KiCadBoardManager, natural_sort_key
 else:
-    from .kicad_manager import KiCadBoardManager
+    from .kicad_manager import KiCadBoardManager, natural_sort_key
 
 logging.info("The plugin has been loaded successfully.")
 
@@ -248,6 +248,8 @@ class KiCadPinout(PinoutDialog):  # type: ignore[misc]
 
                 footprint_data = {"pins": pins, **properties}
                 footprint_list.append(footprint_data)
+
+            footprint_list.sort(key=lambda fp: natural_sort_key(fp.get("reference", "")))
         pptext = pprint.pformat(footprint_list)
         logging.debug("footprint_list: %s", pptext)
 
