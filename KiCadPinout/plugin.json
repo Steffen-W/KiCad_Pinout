@@ -1,6 +1,6 @@
 {
   "$schema": "https://go.kicad.org/api/schemas/v1",
-  "identifier": "com.github.Steffen-W.KiCad_Pinout",
+  "identifier": "com.github.Steffen-W.KiCad-Pinout",
   "name": "KiCadPinout",
   "description": "KiCadPinout: generates formatted pinout documentation from PCB components. ",
   "runtime": {
