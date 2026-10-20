@@ -25,7 +25,8 @@
     "library"
   ],
   "keep_on_update": [
-    "KiCadPinout/options\\.ini$"
+    "KiCadPinout/options\\.ini$",
+    "KiCadPinout/state\\.json$"
   ],
   "versions": [
     {

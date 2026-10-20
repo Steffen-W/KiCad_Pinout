@@ -53,7 +53,7 @@ python KiCadPinout/plugin_action.py
 
 The plugin supports the following output formats:
 
-Examples for an LED `D15` with "Clean names" enabled (the default): `Net-(D15-1)` becomes `NET_D15-1`, `/LC` becomes `LC`, and pin names become valid C identifiers (`IO0/TXD` -> `IO0_TXD`, `3V3` -> `PIN_3V3`, no name -> `PIN_<number>`, equal names get the pad number: `GND_1`, `GND_2`). Net names, references and other fields are not turned into identifiers, so `c_define` writes the net as a string and `c_enum` needs numeric pad numbers.
+Examples for an LED `D15` with "Clean names" enabled (the default): `Net-(D15-1)` becomes `NET_D15-1`, `/LC` becomes `LC`, and pin names become valid C identifiers (`IO0/TXD` -> `IO0_TXD`, `3V3` -> `PIN_3V3`, `+`/`D-` -> `PLUS`/`D_MINUS`, no name -> `PIN_<number>`, equal names get the pad number: `GND_1`, `GND_2`). Net names, references and other fields are not turned into identifiers, so `c_define` writes the net as a string and `c_enum` needs numeric pad numbers.
 
 ### C-style defines
 
@@ -93,40 +93,56 @@ Examples for an LED `D15` with "Clean names" enabled (the default): `Net-(D15-1)
 
 ### Python
 
-Shows every token available for the templates, including custom fields such as `lcsc_part`.
-`pin_type` is the electrical type of the symbol pin.
+Shows the raw footprint and pin data, including custom fields such as `lcsc_part`.
+`pin_type` is the electrical type of the symbol pin. The example is shortened; all tokens are listed under [Available placeholders](#customization).
 
 ```python
-[{'datasheet': '',
-  'description': '',
-  'lcsc_part': 'C2827693',
-  'pins': [{'connected': True,
-            'netname': 'NET_D15-1',
-            'number': '1',
-            'pin_function': 'GA',
-            'pin_type': 'passive'},
-           {'connected': True,
-            'netname': 'LC',
-            'number': '2',
-            'pin_function': 'GK',
-            'pin_type': 'passive'},
-           {'connected': True,
-            'netname': 'LC',
-            'number': '3',
-            'pin_function': 'RA',
-            'pin_type': 'passive'},
-           {'connected': True,
-            'netname': 'NET_D15-1',
-            'number': '4',
-            'pin_function': 'RK',
-            'pin_type': 'passive'}],
-  'reference': 'D15',
-  'value': 'USB'}]
+[
+    {
+        "datasheet": "",
+        "description": "",
+        "lcsc_part": "C2827693",
+        "pins": [
+            {
+                "connected": True,
+                "netname": "NET_D15-1",
+                "number": "1",
+                "pin_function": "GA",
+                "pin_type": "passive",
+            },
+            {
+                "connected": True,
+                "netname": "LC",
+                "number": "2",
+                "pin_function": "GK",
+                "pin_type": "passive",
+            },
+            {
+                "connected": True,
+                "netname": "LC",
+                "number": "3",
+                "pin_function": "RA",
+                "pin_type": "passive",
+            },
+            {
+                "connected": True,
+                "netname": "NET_D15-1",
+                "number": "4",
+                "pin_function": "RK",
+                "pin_type": "passive",
+            },
+        ],
+        "reference": "D15",
+        "value": "USB",
+    }
+]
 ```
 
 ## Customization
 
 The output formats can be customized by editing the `options.ini` file located in the plugin directory. The file is created with a commented example the first time you run the plugin. Values in it override the built-in format of the same name one by one (a `[markdown]` section with only `pin_seq` keeps the built-in header and footer), new sections add formats. Write line breaks as `\n` and tabs as `\t`.
+
+The dialog remembers the last selected format, the edited sequences and "Clean names" in `state.json` next to `options.ini`. Selecting a format in the list loads its sequences again.
 
 Each format has three template sections:
 - `start_seq`: The beginning of the output (e.g., table header)
@@ -134,8 +150,12 @@ Each format has three template sections:
 - `end_seq`: The ending of the output (e.g., table footer)
 
 Available placeholders:
-- For start/end: `{reference}`, `{value}`, `{description}` and every other footprint field
-- For pins: `{number}`, `{pin_function}`, `{netname}`, `{pin_type}`, `{connected}` (plus all footprint fields)
+- For start/end: `{reference}`, `{value}`, `{description}`, `{footprint}` (`Resistor_SMD:R_0402_1005Metric`), `{footprint_library}`, `{footprint_name}` and every other footprint field
+  - Placement: `{side}` (`top`/`bottom`), `{x_mm}`, `{y_mm}`, `{x_mil}`, `{y_mil}`, `{rotation}` (degrees)
+  - Attributes: `{mounting}` (`smd`/`through_hole`/`unspecified`), `{dnp}`, `{exclude_from_bom}`, `{exclude_from_pos_files}`, `{board_only}`, `{locked}` (`True`/`False`)
+- For pins: `{number}`, `{pin_function}`, `{netname}`, `{pin_type}`, `{connected}`, `{net_class}`, `{pad_type}` (`smd`/`pth`/`npth`/`connector`), `{pad_x_mm}`, `{pad_y_mm}`, `{pad_x_mil}`, `{pad_y_mil}` (plus all footprint fields)
+
+Positions are relative to the drill/place origin, with y pointing down as in the PCB editor.
 
 Custom fields are named in snake_case: the field `LCSC Part` becomes `{lcsc_part}`, `MPN` becomes `{mpn}`.
 Writing the field name as in KiCad (`{LCSC Part}`) works too. The `?` button next to `Update` lists all tokens of the selected footprints with an example value in the result field, ready to copy; `Update` shows the output again. A field that only some of the selected footprints have stays empty for the others.
