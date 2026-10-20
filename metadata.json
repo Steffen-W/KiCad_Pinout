@@ -25,13 +25,14 @@
     "library"
   ],
   "keep_on_update": [
-    "^/plugins/com_github_Steffen-W_KiCadPinout/KiCadPinout/options\\.ini$"
+    "KiCadPinout/options\\.ini$"
   ],
   "versions": [
     {
-      "version": "2025.05.01",
+      "version": "2026.xx.xx",
       "status": "stable",
-      "kicad_version": "7.00"
+      "kicad_version": "9.0",
+      "runtime": "ipc"
     }
   ]
 }

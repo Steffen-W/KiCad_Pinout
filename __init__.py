@@ -1,7 +1,7 @@
 import pcbnew
 
 from .KiCadPinout import plugin_action
-from .KiCadPinout.kicad_manager import KiCadBoardManager
+from .KiCadPinout.kicad_manager import read_pcbnew
 
 
 class ActionKiCadPlugin(pcbnew.ActionPlugin):  # type: ignore[misc]
@@ -17,7 +17,8 @@ class ActionKiCadPlugin(pcbnew.ActionPlugin):  # type: ignore[misc]
         self.dark_icon_file_name = str(icon_path)
 
     def Run(self) -> None:
-        plugin_action.KiCadPinout(KiCadBoardManager()).ShowModal()
+        with plugin_action.KiCadPinout(read_pcbnew) as dialog:
+            dialog.ShowModal()
 
 
 ActionKiCadPlugin().register()

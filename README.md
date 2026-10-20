@@ -6,7 +6,7 @@
 
 # KiCad Pinout Generator
 
-A KiCad plugin that generates formatted pinout documentation from PCB components. Supports both KiCad 6 (legacy API) and KiCad 9+ (new IPC API), allowing seamless operation across different KiCad versions.
+A KiCad plugin that generates formatted pinout documentation from PCB components. Supports both the pcbnew API (KiCad 6+) and the IPC API (KiCad 9+), allowing seamless operation across different KiCad versions.
 
 ## Features
 
@@ -22,6 +22,8 @@ A KiCad plugin that generates formatted pinout documentation from PCB components
 ## Installation
 
 ### Using Plugin and Content Manager
+
+Requires KiCad 9 or newer. On older versions, install the plugin manually.
 
 1. Open KiCad
 2. Go to PCB Editor
@@ -51,73 +53,80 @@ python KiCadPinout/plugin_action.py
 
 The plugin supports the following output formats:
 
+Examples for an LED `D15` with "Clean names" enabled (the default): `Net-(D15-1)` becomes `NET_D15-1`, `/LC` becomes `LC`, and pin names become valid C identifiers (`IO0/TXD` -> `IO0_TXD`, `3V3` -> `PIN_3V3`, no name -> `PIN_<number>`, equal names get the pad number: `GND_1`, `GND_2`). Net names, references and other fields are not turned into identifiers, so `c_define` writes the net as a string and `c_enum` needs numeric pad numbers.
+
 ### C-style defines
 
 ```c
 // D15 USB
-#define GA Net-(D15-1)
-#define GK /LC
-#define RA /LC
-#define RK Net-(D15-1)
-//
+#define GA "NET_D15-1"
+#define GK "LC"
+#define RA "LC"
+#define RK "NET_D15-1"
 ```
 
 ### Markdown
 
 ```markdown
-Pinout for D15
-        
-| Pin number | Pin name | Pin net     |
-| ---------- | -------- | ----------- |
-| 1          | GA       | Net-(D15-1) |
-| 2          | GK       | /LC         |
-| 3          | RA       | /LC         |
-| 4          | RK       | Net-(D15-1) |
+## D15 (USB)
+
+| Pin | Name | Net |
+|---------------|---------------|---------------|
+| 1		| GA		| NET_D15-1		|
+| 2		| GK		| LC		|
+| 3		| RA		| LC		|
+| 4		| RK		| NET_D15-1		|
 ```
 
 ### HTML
 
 ```html
 <p>Pinout for D15</p>
-<table><tr><th>Pin number</th><th>Pin name</th><th>Pin net</th></tr>
-<tr><td>1</td><td>GA</td><td>Net-(D15-1)</td></tr>
-<tr><td>2</td><td>GK</td><td>/LC</td></tr>
-<tr><td>3</td><td>RA</td><td>/LC</td></tr>
-<tr><td>4</td><td>RK</td><td>Net-(D15-1)</td></tr>
+<table>
+	<tr><th>Pin number</th><th>Pin name</th><th>Pin net</th></tr>
+	<tr><td>1</td><td>GA</td><td>NET_D15-1</td></tr>
+	<tr><td>2</td><td>GK</td><td>LC</td></tr>
+	<tr><td>3</td><td>RA</td><td>LC</td></tr>
+	<tr><td>4</td><td>RK</td><td>NET_D15-1</td></tr>
 </table>
 ```
 
 ### Python
 
+Shows every token available for the templates, including custom fields such as `lcsc_part`.
+`pin_type` is the electrical type of the symbol pin.
+
 ```python
-[{'description': '',
+[{'datasheet': '',
+  'description': '',
+  'lcsc_part': 'C2827693',
   'pins': [{'connected': True,
-            'netname': 'Net-(D15-1)',
-            'number': 1,
+            'netname': 'NET_D15-1',
+            'number': '1',
             'pin_function': 'GA',
-            'pin_type': 'PT_SMD'},
+            'pin_type': 'passive'},
            {'connected': True,
-            'netname': '/LC',
-            'number': 2,
+            'netname': 'LC',
+            'number': '2',
             'pin_function': 'GK',
-            'pin_type': 'PT_SMD'},
+            'pin_type': 'passive'},
            {'connected': True,
-            'netname': '/LC',
-            'number': 3,
+            'netname': 'LC',
+            'number': '3',
             'pin_function': 'RA',
-            'pin_type': 'PT_SMD'},
+            'pin_type': 'passive'},
            {'connected': True,
-            'netname': 'Net-(D15-1)',
-            'number': 4,
+            'netname': 'NET_D15-1',
+            'number': '4',
             'pin_function': 'RK',
-            'pin_type': 'PT_SMD'}],
+            'pin_type': 'passive'}],
   'reference': 'D15',
   'value': 'USB'}]
 ```
 
 ## Customization
 
-The output formats can be customized by editing the `options.ini` file located in the plugin directory. The file is automatically created the first time you run the plugin.
+The output formats can be customized by editing the `options.ini` file located in the plugin directory. The file is created with a commented example the first time you run the plugin. Values in it override the built-in format of the same name one by one (a `[markdown]` section with only `pin_seq` keeps the built-in header and footer), new sections add formats. Write line breaks as `\n` and tabs as `\t`.
 
 Each format has three template sections:
 - `start_seq`: The beginning of the output (e.g., table header)
@@ -125,25 +134,29 @@ Each format has three template sections:
 - `end_seq`: The ending of the output (e.g., table footer)
 
 Available placeholders:
-- For start/end: `{reference}`, `{value}`, `{description}`
-- For pins: `{number}`, `{pin_function}`, `{netname}`, `{pin_type}`, `{connected}`
+- For start/end: `{reference}`, `{value}`, `{description}` and every other footprint field
+- For pins: `{number}`, `{pin_function}`, `{netname}`, `{pin_type}`, `{connected}` (plus all footprint fields)
+
+Custom fields are named in snake_case: the field `LCSC Part` becomes `{lcsc_part}`, `MPN` becomes `{mpn}`.
+Writing the field name as in KiCad (`{LCSC Part}`) works too. The `?` button next to `Update` lists all tokens of the selected footprints with an example value in the result field, ready to copy; `Update` shows the output again. A field that only some of the selected footprints have stays empty for the others.
+Unknown placeholders are left in the output unchanged, so typos are easy to spot.
 
 ## Compatibility
 
-- KiCad 6.0+ (using pcbnew API)
-- KiCad 7.0+ (using either pcbnew API or IPC API)
+- KiCad 6.0+: "Pinout Generator (pcbnew)" button (pcbnew API)
+- KiCad 9.0+: "Pinout Generator" button (IPC API); pin names and types via IPC need KiCad 10
 - Tested on Windows, Linux, and macOS
 
 ## Requirements
 
-- Python 3.6+
+- Python 3.9+
 - wxPython
-- numpy
+- kicad-python (IPC plugin, KiCad 9+)
 - KiCad 6.0 or higher
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
 ## Contributing
 

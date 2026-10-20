@@ -1,4 +1,2 @@
-kicad-python  # KiCAD >=9
-numpy
-wxPython # GUI
-protobuf
+kicad-python>=0.6.0  # KiCad >= 9
+wxPython>=4.2  # GUI

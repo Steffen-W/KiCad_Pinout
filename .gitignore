@@ -123,4 +123,8 @@ dmypy.json
 .pyre/
 
 # Pycharm
-.idea/KiCadPinout/options.ini
+.idea/
+
+# Plugin settings created at runtime
+KiCadPinout/options.ini
+

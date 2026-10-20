@@ -10,7 +10,6 @@ exclude = ["venv", "build", "dist", "KiCadPinout/gui.py"]
 
 [lint.per-file-ignores]
 "__init__.py" = ["F401"]
-"KiCadPinout/kicad_manager.py" = ["F401"]  # availability-test imports
 
 [format]
 quote-style = "double"

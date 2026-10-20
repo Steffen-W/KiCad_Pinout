@@ -40,14 +40,16 @@ KiCadPinout/
 
 Plugin directory (Linux): `~/.local/share/kicad/9.0/3rdparty/plugins/`
 
-### API Detection
+### Entry points
 
-```python
-# kicad_manager.py connect() logs:
-# INFO - connect: IPC False pcbnew True (prefer_pcbnew=True)
-```
+- `__init__.py`: pcbnew action plugin, reads the board with `read_pcbnew()`
+- `KiCadPinout/plugin_action.py` run as script (`plugin.json`): IPC plugin, reads with `read_ipc()`
 
-`pin_function` is only available via pcbnew, not via IPC.
+`pin_function`/`pin_type` via IPC need KiCad 10 (`symbol_pin` in the pad proto); KiCad 9 leaves them empty ("Clean names" then gives `PIN_<number>`).
+
+The plugin identifier in `plugin.json` must match KiCad's regex
+`^[a-zA-Z]{2,}(\.([a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]|[a-zA-Z0-9])){2,}$`, so no underscores.
+Otherwise KiCad silently ignores the IPC plugin.
 
 ### Troubleshooting
 
